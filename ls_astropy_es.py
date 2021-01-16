@@ -82,16 +82,13 @@ def save_to_ascii_file(data_list, out_filepath, header=[]):
     with open(out_filepath,"w") as f:
         f.writelines(write_list)
 
-def plot_graph(data, out_filepath, lb_freq_start=0.2, lb_freq_end=4.0, lb_freq_num=1000, to_display=False, save_to_disk=True):
+def plot_graph(data, out_filepath, to_display=False, save_to_disk=True):
     '''
     Plot grapth and return its data
 
     Params
     data - input data in list of lists with pair value and time
     out_filepath - out file name path for create
-    lb_freq_start - start frequency of lombscargle graph
-    lb_freq_end - end frequency of lombscargle graph
-    lb_freq_num - number of points in lombscargle graph
     to_display - if set to true then graph will be shown on the display
     save_to_disk - if set to true then graph will be saved on the disk
 
@@ -125,13 +122,8 @@ def plot_graph(data, out_filepath, lb_freq_start=0.2, lb_freq_end=4.0, lb_freq_n
     #Now make a plot of the input data:
     source_ax.plot(x, y, 'b+')
 
-    #Then plot the normalized periodogram:
-    astropy_pgram_ax.plot(astropy_pgram.t, astropy_pgram.y)
-    astropy_pgram_ax.set_xbound(lower=0.0, upper=20.0)
-
     # astropy periodogram
-    astropy_pgram_ax.plot(1*astropy_freq[:600], astropy_power[:600],'g')
-    astropy_pgram_ax.set_xbound(lower=0.0, upper=20.0)
+    astropy_pgram_ax.plot(astropy_freq, astropy_power,'g')
     astropy_pgram_ax.text(0.95, 0.95, "FAP(first_peak) = {:.4f}%".format(astropy_false_alarm_probability),
         verticalalignment='top', horizontalalignment='right',
         transform=astropy_pgram_ax.transAxes,
@@ -143,13 +135,10 @@ def plot_graph(data, out_filepath, lb_freq_start=0.2, lb_freq_end=4.0, lb_freq_n
     if save_to_disk:
         plt.savefig(out_filepath)
 
-    # Define the array of frequencies for which to compute the periodogram:
-    #f = np.linspace(lb_freq_start, lb_freq_end, lb_freq_num)
-
     # Generate output
-    for idx, freq in enumerate(astropy_pgram.t):
+    for idx, freq in enumerate(astropy_freq):
         period = 1 / freq
-        output_data.append([freq, period, astropy_pgram.y[idx], time_value])
+        output_data.append([freq, period, astropy_power[idx], time_value])
 
     plt.cla()
     plt.clf()
@@ -157,7 +146,7 @@ def plot_graph(data, out_filepath, lb_freq_start=0.2, lb_freq_end=4.0, lb_freq_n
 
     return output_data
 
-def process_windowed_files(path, output_file_path, lb_freq_start, lb_freq_end, lb_freq_num):
+def process_windowed_files(path, output_file_path):
     files = glob.glob(path + "*.dat")  
 
     for filepath in files:
@@ -171,26 +160,18 @@ def process_windowed_files(path, output_file_path, lb_freq_start, lb_freq_end, l
 
         print("Process >> " + filepath)
 
-        try:
-            read_data = read_file_data(filepath)
-            out_dat_filepath = path + os.path.basename(filepath) + "_windowed" + ".dat"
-            out_png_filepath = path + os.path.basename(filepath) + "_windowed" + ".png"
 
-            output_data = plot_graph(read_data, 
-                                    out_png_filepath,
-                                    lb_freq_start=lb_freq_start,
-                                    lb_freq_end=lb_freq_end,
-                                    lb_freq_num=lb_freq_num)
+        read_data = read_file_data(filepath)
+        out_dat_filepath = path + os.path.basename(filepath) + "_windowed" + ".dat"
+        out_png_filepath = path + os.path.basename(filepath) + "_windowed" + ".png"
 
-            print("Saved PNG to >> " + out_png_filepath)
-            save_to_ascii_file(output_data, out_dat_filepath)
-            print("Saved DAT to >> " + out_dat_filepath)
-        except Exception as e:
-            print("Cannot process >> ", filepath)
-            print("Reason >> " + str(e))
-        finally:
-            print()
-    
+        output_data = plot_graph(read_data, 
+                                out_png_filepath)
+
+        print("Saved PNG to >> " + out_png_filepath)
+        save_to_ascii_file(output_data, out_dat_filepath)
+        print("Saved DAT to >> " + out_dat_filepath)
+
         try:
             os.remove(output_file_path)
         except Exception as e:
@@ -205,35 +186,23 @@ def process_windowed_files(path, output_file_path, lb_freq_start, lb_freq_end, l
                 with open(output_file_path, 'a') as merged_file:
                     merged_file.write(data)
 
-
 def main():
     print("Script is started")
 
     files = glob.glob("./input/*.dat")              # Change path here or write filepath
     OUTPUT_PATH = "./output/"                       # Change output here
-    WINDOW = 1080                                    # Change window value here
-    STEP = 24                                      # Change step value here
-    FREQ_START = 0.04                               # Change freq start here
-    FREQ_END = 1.0                                  # Change freq end here
-    FREQ_NUM = 1000                               # Change freq num here
+    WINDOW = 1000                                   # Change window value here
+    STEP = 24                                       # Change step value here
 
     for filepath in files:
         print("Process >> " + filepath)
 
-        try:
-            read_lines = read_raw_file_data(filepath)
-            out_dat_filepath = OUTPUT_PATH + os.path.basename(filepath)
-            process_file(read_lines, out_dat_filepath, WINDOW, STEP)
-            process_windowed_files(OUTPUT_PATH, f'{OUTPUT_PATH}!{os.path.basename(filepath)}_merged_file.dat', FREQ_START, FREQ_END, FREQ_NUM)
+        read_lines = read_raw_file_data(filepath)
+        out_dat_filepath = OUTPUT_PATH + os.path.basename(filepath)
+        process_file(read_lines, out_dat_filepath, WINDOW, STEP)
+        process_windowed_files(OUTPUT_PATH, f'{OUTPUT_PATH}!{os.path.basename(filepath)}_merged_file.dat')
 
-            print(f"<{filepath}> succesful processed by the script")
-    
-        except Exception as e:
-            print("Cannot process >> ", filepath)
-            print("Reason >> " + str(e))
-            
-        finally:
-            print()
+        print(f"<{filepath}> succesful processed by the script")
 
     print("Script is finished")
 
