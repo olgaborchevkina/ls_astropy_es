@@ -191,8 +191,11 @@ def main():
 
     files = glob.glob("./input/*.dat")              # Change path here or write filepath
     OUTPUT_PATH = "./output/"                       # Change output here
-    WINDOW = 648                                   # Change window value here
-    STEP = 24                                       # Change step value here
+    WINDOW = 648                                    # Change window value here
+    STEP = 24                                      # Change step value here
+    FREQ_START = 0.08                               # Change freq start here
+    FREQ_END = 1.0                                  # Change freq end here
+    FREQ_NUM = 500                               # Change freq num here
 
     for filepath in files:
         print("Process >> " + filepath)
