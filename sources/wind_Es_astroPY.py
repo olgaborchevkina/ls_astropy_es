@@ -5,7 +5,7 @@ import scipy.signal as signal
 import numpy as np
 import pandas as pd
 
-data = pd.read_csv('2017-18.dat', sep = '\s+', header = None)
+data = pd.read_csv(r"C:\Users\ASUS\Desktop\science_software\Lomb-Scragle\ls_astropy_es\sources\wind_Es_astroPY.py", sep = '\s+', header = None)
 
 # search and remember NaN in data into logical massive mask
 maska = (np.isnan(data[1].astype(float)))
